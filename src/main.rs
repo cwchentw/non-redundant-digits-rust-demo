@@ -1,7 +1,11 @@
+extern crate pcre;
+extern crate enum_set;
+
 use std::io;
-use std::io::Write;
+use std::io::{stderr, Write};
 use std::process;
-use std::collections::HashSet;
+use enum_set::{EnumSet};
+use pcre::{Pcre, CompileOption};
 
 fn main() {
     print!("Input a number: ");
@@ -20,6 +24,15 @@ fn main() {
         }
     };
 
+    let options: EnumSet<CompileOption> = EnumSet::new();
+    let mut pattern = match Pcre::compile_with_options(r"(\d).*\1", &options) {
+        Ok(re) => re,
+        Err(err) => {
+            writeln!(stderr(), "The pattern could not be compiled: {}", err)
+                .unwrap();
+            return;
+        }
+    };
     let x: i32 = 10;
     let mut count = 1;
     for i in 1..(x.pow(n)) {
@@ -28,21 +41,13 @@ fn main() {
         }
 
         let num_string = i.to_string();
-        let mut chars = num_string.chars();
-        let mut hash = HashSet::new();
-        let mut c = chars.next();
-        while c != None {
-            hash.insert(c);
-            c = chars.next();
-        }
-        let mut digit = 0;
-        let mut j = i;
-        while j > 0 {
-            j = j / 10;
-            digit += 1;
-        }
-        let passed = hash.len() as i32 >= digit;
-        if passed {
+        let matched = pattern.exec(&num_string);
+        let dup = match matched {
+            None => false,
+            Some(_) => true
+        };
+
+        if !dup {
             print!("{} ", i);
             count += 1;
         }
